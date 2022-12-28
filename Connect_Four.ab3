@@ -1,0 +1,436 @@
+; XTRA
+; Embedded .xtra Header
+; 
+; General Info
+; -------------------------------------------------------
+; ExePath         = "RAM:"
+; ExeFile         = "Prog.exe"
+; CreateIcon      = 0
+; Residents       = ""
+; 
+; Compiler
+; -------------------------------------------------------
+; StringBuffer    = 10240
+; MakeSmallest    = 0
+; FuncOptimize    = 1
+; Version         = 0.0.0
+; NumberOfBuilds  = 36
+; 
+; Debugger
+; -------------------------------------------------------
+; CliArgs         = ""
+; StackSize       = 32768
+; RuntimeDebug    = 0
+; DebugInfo       = 0
+; CreateDbgFile   = 0
+; OverflowCheck   = 0
+; AssemblerCheck  = 1
+; InterruptCheck  = 1
+; AutoRun         = 1
+; 
+; Editor
+; -------------------------------------------------------
+; CursorLine      = 156
+; CursorColumn    = 31
+; LabelSearch     = ""
+; LabelRemark     = 0
+; LabelAll        = 0
+; LabelPosition   = 0
+; 
+; Blitz Objects
+; -------------------------------------------------------
+; Max File        = 5
+; Max GadgetList  = 5
+; Max Queue       = 10
+; Max Screen      = 5
+; Max Shape       = 100
+; Max CopList     = 10
+; Max Sprite      = 20
+; Max Stencil     = 5
+; Max Module      = 5
+; Max Window      = 20
+; Max Anim        = 10
+; Max Sound       = 10
+; Max Bank        = 5
+; Max Buffer      = 10
+; Max Slice       = 10
+; Max Page        = 4
+; Max Tape        = 5
+; Max IntuiFont   = 5
+; Max MedModule   = 8
+; Max Palette     = 4
+; Max MenuList    = 5
+; Max BlitzFont   = 4
+; Max GTList      = 20
+; Max BitMap      = 10
+; Max IconInfo    = 1
+; Max NChunky     = 50
+; Max MUIObject   = 50
+; Max PTModule    = 5
+; Max AsyncReq    = 4
+; Max Req-Lib     = 5
+; Max GTMenuList  = 5
+; Max Console     = 5
+; Max TCPSock     = 5
+; Max XBSound     = 10
+; Max Chunky      = 20
+; /XTRA
+; Connect 4
+
+; Routines
+
+; Constants
+
+#EMPTY=0
+#RED=1
+#YELLOW=2
+#COLUMNS=8
+#ROWS=8
+
+Dim board(#COLUMNS,#ROWS)
+
+Statement clear_board{}
+ SHARED board()
+ For r=1 To (#ROWS)
+  For c=1 To (#COLUMNS)
+   board(c,r)=#EMPTY
+  Next c
+ Next r
+End Statement
+
+Statement draw_board{}
+ SHARED board()
+ ; Print top of board
+ For c=1 To (#COLUMNS*2+2)
+  Print "-"
+ Next c
+ NPrint ""
+ ; Print columns
+ For r=(#ROWS) To 1 Step -1
+  For c=1 To (#COLUMNS)
+   If board(c,r)=(#RED)
+    Print "|R"
+   EndIf
+   If board(c,r)=(#YELLOW)
+    Print "|Y"
+   EndIf
+   If board(c,r)=(#EMPTY)
+    Print "| "
+   EndIf
+  Next c
+  NPrint "|"
+ Next r
+ ; Print bottom of board
+ For c=1 To (#COLUMNS*2+2)
+  Print "-"
+ Next c
+ NPrint ""
+ ; Print column numbers
+ For c=1 To (#COLUMNS)
+  Print " ",c
+ Next c
+ NPrint ""
+End Statement
+
+Function get_number{lownum, highnum}
+ num=0
+ flag=False
+ Repeat
+  num=Edit(2)
+  If num>=lownum AND num<=highnum
+    flag=True
+  Else
+    Print "Try again: "
+  EndIf
+ Until flag=True
+ Function Return num
+End Function
+
+Function colour_of_square{col,row}
+  SHARED board()
+  Function Return board(col,row)
+End Function
+
+Statement set_square_colour{col,row, player}
+  SHARED board()
+  board(col,row)=player
+End Statement
+
+Function$ get_colour{player}
+ If player=#RED
+   Function Return "Red"
+ Else
+  If player=#YELLOW
+    Function Return "Yellow"
+  Else
+   Function Return "None"
+  EndIf
+ EndIf
+End Function
+
+Function get_first_player{}
+ Repeat
+  Print "Red or Yellow to go first? "
+  reply$=Edit$(1)
+ Until reply$="r" OR reply$="y"
+ If reply$="r"
+   startcol=#RED
+ Else
+   startcol=#YELLOW
+ EndIf
+ Function Return startcol
+End Function
+
+Function swap_players{player}
+ If player=#RED
+  startplayer = #YELLOW
+ Else
+  startplayer = #RED
+ EndIf
+ Function Return startplayer
+End Function
+
+Function another_game{}
+ Repeat
+  Print "Do you want to play again? "
+  reply$=Edit$(1)
+ Until reply$="y" OR reply$="n"
+ If reply$="y"
+   Function Return True
+ Else
+  Function Return False
+ EndIf
+End Function
+
+Function get_length{}
+  Repeat
+   Print "Enter winning length (3-6)? "
+   winlength=Edit(1)
+  Until winlength>=3 AND winlength<=6
+  Function Return winlength
+End Function
+
+Function get_a_column{player}
+  SHARED board()
+  Repeat
+    NPrint "Player ",get_colour{player},"'s turn."
+    Print "Select a column (99=End)? "
+    ;column=get_number{1,#COLUMNS}
+    column=Edit(2)
+    ; Exit program if 99 entered!
+    If column=99
+     End
+    EndIf
+  Until colour_of_square{column,#ROWS}=#EMPTY
+  Function Return column
+End Function
+
+Function place_a_counter{column, player}
+  SHARED board()
+  row=0
+  Repeat
+   row=row+1
+   ;sqrcolour=colour_of_square{column,row}
+   sqlcolour=board(column,row)
+   NPrint "Colour of (",column, ",", row,") = ",sqlcolour
+  Until sqlcolour=#EMPTY 
+  ;set_square_colour{column,row,player}
+  board(column,row)=player
+  NPrint "Setting (",column, ",", row,") = ",player
+  Function Return row
+End Function
+
+Function check_full_board{}
+  SHARED board()
+  count=0
+  For col=1 To (#COLUMNS)
+   If colour_of_square{col,#ROWS}<>#EMPTY
+    count=count+1
+   EndIf
+  Next col
+  If count=#COLUMNS
+     full=True
+  Else
+     full=False
+  EndIf
+  Function Return full
+End Function
+
+Function check_horz{column,row,player,winlength}
+  SHARED board()
+  count=0
+  plcolour=player
+  col=column
+  Repeat
+   boxcolour=colour_of_square{col,row}
+   If boxcolour=plcolour
+    count=count+1
+   EndIf
+   col=col+1
+  Until boxcolour<>plcolour OR col>#COLUMNS
+
+  If column>1
+    col=column-1
+    Repeat
+     boxcolour=colour_of_square{col,row}
+     If boxcolour=plcolour
+      count=count+1
+     EndIf
+     col=col-1
+     Until boxcolour<>plcolour OR col<1
+  EndIf
+  If count>=winlength
+    win=True
+  Else
+    win=False
+  EndIf
+  Function Return win
+End Function
+
+Function check_vert{column,row,player,winlength}
+  SHARED board()
+  count=0
+  plcolour=player
+  row2=row
+  Repeat
+   boxcolour=colour_of_square{col,row2}
+   If boxcolour=plcolour
+     count=count+1
+   End If
+   row2=row2-1
+  Until boxcolour<>plcolour OR row2<1
+  If count>=winlength
+    win=True
+  Else
+    win=False
+  EndIf
+  Function Return win
+End Function
+
+Function left_right_diag{column,row,player,winlength}
+  SHARED board()
+  count=0
+  plcolour=player
+  row2=row
+  col2=column
+  Repeat
+    boxcolour=colour_of_square{col2,row2}
+    If boxcolour=plcolour
+     count=count+1
+    EndIf
+    row2=row2-1
+    col2=col2+1
+  Until row2<1 OR col2>#COLUMNS OR boxcolour<>plcolour
+  row2=row+1
+  col2=column-1
+  If (row2<=#ROWS AND col2>=1)
+   Repeat
+     boxcolour=colour_of_square{col2,row2}
+     If boxcolour=plcolour
+       count=count+1
+     EndIf
+     row2=row2+1
+     col2=col2-1
+   Until row2>#ROWS OR col2<1 OR boxcolour<>plcolour
+  EndIf
+  If count>=winlength
+    win=True
+  Else
+    win=False
+  EndIf
+  Function Return win
+End Function
+
+Function right_left_diag{column,row,player,winlength}
+  SHARED board()
+  count=0
+  plcolour=player
+  row2=row
+  col2=column
+  Repeat
+    boxcolour=colour_of_square{col2,row2}
+    If boxcolour=plcolour
+      count=count+1
+    EndIf
+    row2=row2+1
+    col2=col2+1
+  Until row2>#ROWS OR col2>#COLUMNS OR boxcolour<>plcolour
+  row2=row-1
+  col2=column-1
+  If row2>=1 AND col2>=1
+   Repeat
+     boxcolour=colour_of_square{col2,row2}
+     If boxcolour=plcolour
+      count=count+1
+     EndIf
+     row2=row2-1
+     col2=col2-1
+   Until row2<1 OR col2<1 OR boxcolour<>plcolour
+ EndIf
+ If count>=winlength
+    win=True
+  Else
+    win=False
+  EndIf
+  Function Return win
+End Function
+
+Function check_diag{column,row,player,winlength}
+  SHARED board()
+  win1 = left_right_diag{column,row,player,winlength}
+  win2 = right_left_diag{column,row,player,winlength}
+  If win1=True OR win2=True
+   Function Return True
+  Else
+   Function Return False
+  EndIf
+End Function
+
+Function check_for_win{column,row,player,winlength}
+  SHARED board()
+  win1=check_horz{column,row,player,winlength}
+  win2=check_vert{column,row,player,winlength}
+  win3=check_diag{column,row,player,winlength}
+  If win1=True OR win2=True OR win3=True
+    Function Return True
+  Else
+    Function Return False
+  EndIf
+End Function
+
+Statement play_a_game{startplayer}
+ SHARED board()
+ clear_board{}
+ draw_board{}
+ winlength=get_length{}
+ player=startplayer
+ Repeat
+   column=get_a_column{player}
+   row=place_a_counter{column,player}
+   draw_board{}
+   win=check_for_win{column,row,player,winlength}
+   full=check_full_board{}
+   If win=False
+      player=swap_players{player}
+   EndIf
+ Until full=True OR win=True
+ If win=True
+   NPrint "Congratulations!"
+   NPrint "Player ",get_colour{player}," has won this game!"
+ Else
+  If win=True
+    NPrint "Draw. Board is full."
+  EndIf
+ EndIf
+End Statement
+
+; Main Program
+
+startplayer = get_first_player{}
+Repeat
+  play_a_game{startplayer}
+  startplayer = swap_players{startplayer}
+  new_game = another_game{}
+Until new_game = False
+End
+
